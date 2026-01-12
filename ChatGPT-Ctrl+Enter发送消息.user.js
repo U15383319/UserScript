@@ -1,0 +1,66 @@
+// ==UserScript==
+// @name         ChatGPT Ctrl+Enter 发送消息
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  在 ChatGPT、Claude、Gemini 等聊天界面中，使用 Ctrl + Enter 发送消息，单独按 Enter 则换行。
+// @author       Gvxswur
+// @match        https://chatgpt.com/*
+// @match        https://claude.ai/*
+// @match        https://gemini.google.com/*
+// @match        https://copilot.microsoft.com/*
+// @match        https://www.qianwen.com/*
+// @match        https://chat.deepseek.com/*
+// @grant        none
+// @license      MIT
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Function to find the textarea element
+    function findTextarea() {
+        return document.querySelector('div[contenteditable="true"]') || 
+               document.querySelector('textarea');
+    }
+
+    // Function to find and click the send button
+    function clickSendButton() {
+        const selecters = [
+            'button[aria-label^="Send"]', // ChatGPT Gemini Claude
+            'button[aria-label^="发送"]',
+            'button[aria-label^="Submit"]', // Copilot
+            'div[role="button"]:has(path[d^="M8.3125"])', // DeepSeek
+            'div[class^="operateBtn"]'// Qianwen
+        ];
+        const sendButton = selecters.map(sel => document.querySelector(sel)).find(btn => btn);
+        
+        if (sendButton) {
+            sendButton.click();
+            return true;
+        }
+        return false;
+    }
+
+    // Add event listener to capture keydown events
+    document.addEventListener('keydown', function(e) {
+        const textarea = findTextarea();
+        
+        // Check if we're in the textarea
+        if (!textarea || !textarea.contains(e.target)) {
+            return;
+        }
+
+        // Ctrl+Enter (or Cmd+Enter on Mac) should send the message
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            clickSendButton();
+        }
+        // Plain Enter should insert a newline (allow default behavior)
+        else if (e.key === 'Enter') {
+            e.stopPropagation(); // Stop Claude from intercepting it
+            // Let the default newline behavior happen
+        }
+    }, true); // Use capture phase to intercept before Claude's handlers
+
+})();
