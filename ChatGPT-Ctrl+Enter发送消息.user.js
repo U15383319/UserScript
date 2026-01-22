@@ -14,13 +14,13 @@
 // @license      MIT
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
     // Function to find the textarea element
     function findTextarea() {
-        return document.querySelector('div[contenteditable="true"]') || 
-               document.querySelector('textarea');
+        return document.querySelector('div[contenteditable="true"]') || // ChatGPT Gemini Claude Copilot
+            document.querySelector('textarea'); // Deepseek Qianwen
     }
 
     // Function to find and click the send button
@@ -33,7 +33,7 @@
             'div[class^="operateBtn"]'// Qianwen
         ];
         const sendButton = selecters.map(sel => document.querySelector(sel)).find(btn => btn);
-        
+
         if (sendButton) {
             sendButton.click();
             return true;
@@ -42,9 +42,9 @@
     }
 
     // Add event listener to capture keydown events
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         const textarea = findTextarea();
-        
+
         // Check if we're in the textarea
         if (!textarea || !textarea.contains(e.target)) {
             return;
@@ -58,8 +58,43 @@
         }
         // Plain Enter should insert a newline (allow default behavior)
         else if (e.key === 'Enter') {
+            e.preventDefault();
             e.stopPropagation(); // Stop Claude from intercepting it
-            // Let the default newline behavior happen
+
+            // Insert newline at cursor position
+            if (textarea.getAttribute('contenteditable') === 'true') {
+                // Insert newline in contenteditable div
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+
+                // Delete any selected content first
+                range.deleteContents();
+
+                // Create a line break element
+                const br = document.createElement('br');
+                range.insertNode(br);
+
+                // Create another br for proper cursor positioning (some browsers need this)
+                // const br2 = document.createElement('br');
+                // range.insertNode(br2);
+
+                // Move cursor after the line break
+                range.setStartAfter(br);
+                range.setEndAfter(br);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // For regular textarea, insert newline at cursor position
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const value = textarea.value;
+                textarea.value = value.substring(0, start) + '\n' + value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + 1;
+            }
+
+            // Trigger input event so the app knows content changed
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
         }
     }, true); // Use capture phase to intercept before Claude's handlers
 
